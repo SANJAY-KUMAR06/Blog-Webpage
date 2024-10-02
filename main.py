@@ -261,15 +261,20 @@ def about():
 @app.route("/contact", methods=['GET', 'POST'])
 def contact():
     if request.method == "POST":
-        with smtplib.SMTP("smtp.gmail.com") as connection:
-            connection.starttls()
-            connection.login(os.environ.get('MY_EMAIL'), os.environ.get('MY_PASSWORD'))
-            connection.sendmail(from_addr=request.form['email'], to_addrs=os.environ.get('MY_EMAIL'),
-                                msg=f"Subject:Blog Contact Form\n\n Name: {request.form['name']}\n\n"
-                                    f"Phone: {request.form['phone']}\n\n"
-                                    f"Message: {request.form['message']}\n\n")
-            flash("Mail sent,Will get touch With You Soon..")
-            return redirect(url_for('contact'))
+        try:
+            user_mail = request.form['email']
+            with smtplib.SMTP("smtp.gmail.com", 587) as connection:
+                connection.starttls()
+                connection.login(os.environ.get('MY_EMAIL'), os.environ.get('MY_PASSWORD'))
+                connection.sendmail(from_addr=user_mail, to_addrs=os.environ.get('MY_EMAIL'),
+                                    msg=f"Subject:Blog Contact Form\n\n "
+                                        f"Name: {request.form['name']}\n\n"
+                                        f"Phone: {request.form['phone']}\n\n"
+                                        f"Message: {request.form['message']}\n\n")
+                flash("Mail sent,Will get touch With You Soon..")
+        except Exception as e:
+            flash(f"An error occurred: {e}")
+        return redirect(url_for('contact'))
     return render_template("contact.html", current_user=current_user)
 
 
