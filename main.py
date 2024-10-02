@@ -1,5 +1,6 @@
 from datetime import date
-from flask import Flask, abort, render_template, redirect, url_for, flash
+from flask import Flask, abort, render_template, redirect, url_for, flash, request
+from flask.cli import load_dotenv
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
@@ -9,16 +10,19 @@ from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Integer, String, Text, ForeignKey
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
-
-# Import your forms from the forms.py
+import os
+from dotenv import load_dotenv
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
+import smtplib
+
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
 ckeditor = CKEditor(app)
 Bootstrap5(app)
 
-# TODO: Configure Flask-Login
+# Configure Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -55,13 +59,13 @@ class Base(DeclarativeBase):
     pass
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 
 # CONFIGURE TABLES
-# TODO: Create a User table for all your registered users.
+# Create Tables
 class Users(UserMixin, db.Model):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -109,7 +113,7 @@ with app.app_context():
     db.create_all()
 
 
-# TODO: Use Werkzeug to hash the user's password when creating a new user.
+#  Werkzeug to hash the user's password when creating a new user.
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     register_from = RegisterForm()
@@ -139,7 +143,7 @@ def register():
     return render_template("register.html", form=register_from, current_user=current_user)
 
 
-# TODO: Retrieve a user from the database based on their email. 
+# Retrieve a user from the database based on their email.
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     login_form = LoginForm()
@@ -173,7 +177,7 @@ def get_all_posts():
     return render_template("index.html", all_posts=posts, current_user=current_user)
 
 
-# TODO: Allow logged-in users to comment on posts
+#  Allow logged-in users to comment on posts
 @app.route("/post/<int:post_id>", methods=['GET', 'POST'])
 def show_post(post_id):
     requested_post = db.get_or_404(BlogPost, post_id)
@@ -196,7 +200,7 @@ def show_post(post_id):
                            all_comments=comments)
 
 
-# TODO: Use a decorator so only an admin user can create a new post
+#  a decorator so only an admin user can create a new post
 @app.route("/new-post", methods=["GET", "POST"])
 @admin_only
 def add_new_post():
@@ -216,7 +220,7 @@ def add_new_post():
     return render_template("make-post.html", form=form, current_user=current_user)
 
 
-# TODO: Use a decorator so only an admin user can edit a post
+#  decorator so only an admin user can edit a post
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
 @admin_only
 def edit_post(post_id):
@@ -239,7 +243,7 @@ def edit_post(post_id):
     return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
 
 
-# TODO: Use a decorator so only an admin user can delete a post
+#  decorator so only an admin user can delete a post
 @app.route("/delete/<int:post_id>")
 @admin_only
 def delete_post(post_id):
@@ -254,8 +258,18 @@ def about():
     return render_template("about.html", current_user=current_user)
 
 
-@app.route("/contact")
+@app.route("/contact", methods=['GET', 'POST'])
 def contact():
+    if request.method == "POST":
+        with smtplib.SMTP("smtp.gmail.com") as connection:
+            connection.starttls()
+            connection.login(os.environ.get('MY_EMAIL'), os.environ.get('MY_PASSWORD'))
+            connection.sendmail(from_addr=request.form['email'], to_addrs=os.environ.get('MY_EMAIL'),
+                                msg=f"Subject:Blog Contact Form\n\n Name: {request.form['name']}"
+                                    f"Phone: {request.form['phone']}"
+                                    f"Message: {request.form['message']}")
+            flash("Mail sent,Will touch With You Soon..")
+            return redirect(url_for('contact'))
     return render_template("contact.html", current_user=current_user)
 
 
