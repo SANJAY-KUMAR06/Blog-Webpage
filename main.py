@@ -268,7 +268,7 @@ def contact():
                                 msg=f"Subject:Blog Contact Form\n\n Name: {request.form['name']}\n\n"
                                     f"Phone: {request.form['phone']}\n\n"
                                     f"Message: {request.form['message']}\n\n")
-            flash("Mail sent,Will touch With You Soon..")
+            flash("Mail sent,Will get touch With You Soon..")
             return redirect(url_for('contact'))
     return render_template("contact.html", current_user=current_user)
 
