@@ -269,6 +269,7 @@ def contact():
                 connection.sendmail(from_addr=user_mail, to_addrs=os.environ.get('MY_EMAIL'),
                                     msg=f"Subject:Blog Contact Form\n\n "
                                         f"Name: {request.form['name']}\n\n"
+                                        f"Email: {request.form['email']}\n\n"
                                         f"Phone: {request.form['phone']}\n\n"
                                         f"Message: {request.form['message']}\n\n")
                 flash("Mail sent,Will get touch With You Soon..")
