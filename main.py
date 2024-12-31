@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Flask, abort, render_template, redirect, url_for, flash, request
+from flask import Flask, abort, render_template, redirect, url_for, flash, request,jsonify
 from flask.cli import load_dotenv
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Integer, String, Text, ForeignKey
 from functools import wraps
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
@@ -61,8 +62,9 @@ class Base(DeclarativeBase):
 
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-db = SQLAlchemy(model_class=Base)
-db.init_app(app)
+db = SQLAlchemy(app)
+app.app_context().push()
+
 
 
 # CONFIGURE TABLES
@@ -279,6 +281,21 @@ def contact():
         return redirect(url_for('contact'))
     return render_template("contact.html", current_user=current_user)
 
+@app.route('/test-db')
+def test_db():
+    try:
+        # Execute the 'SELECT 1' query to check the connection
+        result = db.session.execute(text('SELECT 1'))
+        row = result.fetchone()
+
+        # Check if a result was returned
+        if row:
+            return jsonify({"message": "Database connection is successful!", "result": row[0]})
+        else:
+            return jsonify({"message": "No result returned from the database."}), 500
+    except Exception as e:
+        # Handle the exception and return a meaningful message
+        return jsonify({"message": f"Database connection failed: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
